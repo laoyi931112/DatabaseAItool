@@ -76,6 +76,54 @@ volumes:
 
 > 容器内监听 `0.0.0.0:8000`，能否被外部访问由 `-p` 的绑定地址决定；`-p 127.0.0.1:8000:8000` 只允许本机访问。
 
+**构建失败：`Temporary failure resolving 'deb.debian.org'`**
+
+这是 Docker 构建环境无法解析域名，与项目代码无关。按顺序排查：
+
+1. 确认容器 DNS 是否正常：
+
+   ```bash
+   docker run --rm busybox nslookup deb.debian.org
+   ```
+
+   解析失败时，在 Docker Desktop → Settings → Docker Engine 中加入公共 DNS，保存并重启 Docker：
+
+   ```json
+   {
+     "dns": ["223.5.5.5", "119.29.29.29"]
+   }
+   ```
+
+   Linux 服务器可将同样内容写入 `/etc/docker/daemon.json`，然后执行 `sudo systemctl restart docker`。
+
+2. 仍失败时，改用国内 Debian 镜像源构建：
+
+   ```bash
+   docker build \
+     --build-arg APT_MIRROR=mirrors.huaweicloud.com \
+     -t database-ai-tool .
+   ```
+
+   `APT_MIRROR` 也可换成 `mirrors.aliyun.com`、`mirrors.tuna.tsinghua.edu.cn`、`mirrors.ustc.edu.cn`、`mirrors.cloud.tencent.com`；可用 `docker run --rm busybox nslookup mirrors.huaweicloud.com` 先确认能解析。
+
+3. 公司网络需要代理时，在 Docker Desktop 中配置代理，或构建时传入：
+
+   ```bash
+   docker build \
+     --build-arg HTTP_PROXY=http://代理地址:端口 \
+     --build-arg HTTPS_PROXY=http://代理地址:端口 \
+     -t database-ai-tool .
+   ```
+
+4. 只使用 MySQL / PostgreSQL / SQLite / Oracle / MongoDB 时，可以跳过 Microsoft ODBC 驱动，减少一个外网依赖：
+
+   ```bash
+   docker build \
+     --build-arg APT_MIRROR=mirrors.huaweicloud.com \
+     --build-arg INSTALL_MSSQL_ODBC=0 \
+     -t database-ai-tool .
+   ```
+
 **数据持久化与备份**：容器内数据目录为 `/data`（保存 `app.db` 与 `secret.key`），已挂载到命名卷。备份：
 
 ```bash
