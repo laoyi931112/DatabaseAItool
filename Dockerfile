@@ -1,4 +1,4 @@
-FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm
 
 # 网络受限时可切换 Debian 软件源，例如：
 #   docker build --build-arg APT_MIRROR=mirrors.huaweicloud.com -t database-ai-tool .
