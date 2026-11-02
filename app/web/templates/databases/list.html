@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}数据库连接{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>数据库连接</h1>
+    <p class="muted">这里维护允许 AI Agent 以只读方式访问的数据库。密码会使用本地密钥加密后保存在 SQLite 中。</p>
+  </div>
+  <a class="btn primary" href="/databases/new">+ 新增连接</a>
+</div>
+
+{% if databases %}
+<div class="card table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>名称</th>
+        <th>类型</th>
+        <th>地址</th>
+        <th>数据库 / 文件</th>
+        <th>状态</th>
+        <th>行数上限</th>
+        <th class="actions-col">操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for db in databases %}
+      <tr>
+        <td>
+          <strong>{{ db.name }}</strong>
+          {% if db.description %}<div class="muted small">{{ db.description }}</div>{% endif %}
+        </td>
+        <td><span class="badge type">{{ db_type_info[db.db_type].label if db.db_type in db_type_info else db.db_type }}</span></td>
+        <td class="mono small">
+          {% if db.db_type == 'sqlite' %}本地文件{% else %}{{ db.host or '127.0.0.1' }}{% if db.port %}:{{ db.port }}{% endif %}{% endif %}
+        </td>
+        <td class="mono small">{{ db.database }}</td>
+        <td>
+          {% if db.enabled %}
+            <span class="badge on">已启用</span>
+          {% else %}
+            <span class="badge off">已停用</span>
+          {% endif %}
+        </td>
+        <td class="mono small">{{ db.max_rows }}</td>
+        <td>
+          <div class="actions">
+            <button type="button" class="btn small" data-test-url="/databases/{{ db.id }}/test" data-target="#test-{{ db.id }}">测试</button>
+            <a class="btn small" href="/databases/{{ db.id }}/edit">编辑</a>
+            <form method="post" action="/databases/{{ db.id }}/delete" data-confirm="确定删除数据库连接「{{ db.name }}」吗？相关 Key 的授权也会被移除。">
+              <button type="submit" class="btn small danger">删除</button>
+            </form>
+          </div>
+          <div id="test-{{ db.id }}" class="test-result"></div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card empty">
+  <h2>还没有数据库连接</h2>
+  <p class="muted">先添加一个数据库，然后在 API Keys 页面创建 Key 并授权给它。</p>
+  <a class="btn primary" href="/databases/new">新增第一个连接</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}DatabaseAItool{% endblock %} · DatabaseAItool</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">DB</span>
+      <span>DatabaseAItool</span>
+      <span class="version">v{{ version }}</span>
+    </div>
+    <nav class="nav">
+      <a href="/databases" class="{{ 'active' if active == 'databases' else '' }}">数据库连接</a>
+      <a href="/keys" class="{{ 'active' if active == 'keys' else '' }}">API Keys</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    {% for item in flashes %}
+      <div class="alert {{ item.category }}">{{ item.message }}</div>
+    {% endfor %}
+    {% if error %}
+      <div class="alert error">{{ error }}</div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    只读数据库访问 · MCP 端点 <code>/mcp</code>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

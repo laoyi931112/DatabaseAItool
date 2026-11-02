@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ '编辑 API Key' if mode == 'edit' else '新建 API Key' }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ '编辑 API Key' if mode == 'edit' else '新建 API Key' }}</h1>
+    <p class="muted">只有被勾选的数据库允许该 Key 访问；未勾选任何数据库时 Key 无任何访问权限。</p>
+  </div>
+  <a class="btn" href="/keys">返回列表</a>
+</div>
+
+<div class="card form-card">
+  <form method="post" action="{{ action_url }}">
+    <div class="grid two">
+      <label>
+        <span>名称 <em>*</em></span>
+        <input type="text" name="name" value="{{ form.name }}" maxlength="100" required placeholder="例如：Claude-只读分析">
+      </label>
+      <label>
+        <span>过期时间（本地时间，可选）</span>
+        <input type="datetime-local" name="expires_at" value="{{ form.expires_at }}">
+        <small class="muted">留空表示永不过期。</small>
+      </label>
+    </div>
+
+    {% if mode == 'edit' %}
+      <div class="muted small">当前 Key：<code>{{ record.key_prefix }}…</code>（完整 Key 不会再次显示，如需更换请使用“重置密钥”）</div>
+    {% endif %}
+
+    <fieldset class="fieldset">
+      <legend>允许访问的数据库</legend>
+      {% if databases %}
+        <div class="checkbox-grid">
+          {% for db in databases %}
+            <label class="inline checkbox">
+              <input type="checkbox" name="database_ids" value="{{ db.id }}" {{ 'checked' if db.id in form.database_ids else '' }}>
+              <span>{{ db.name }} <span class="muted small">({{ db_type_info[db.db_type].label if db.db_type in db_type_info else db.db_type }})</span></span>
+            </label>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted">还没有数据库连接，请先到 <a href="/databases/new">数据库连接</a> 页面添加。</p>
+      {% endif %}
+    </fieldset>
+
+    <label class="inline checkbox">
+      <input type="checkbox" name="enabled" value="on" {{ 'checked' if form.enabled else '' }}>
+      <span>启用此 Key</span>
+    </label>
+
+    <div class="form-actions">
+      <button type="submit" class="btn primary">{{ '保存修改' if mode == 'edit' else '创建 Key' }}</button>
+      <a class="btn" href="/keys">取消</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -218,3 +218,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# DatabaseAItool runtime data
+data/
+
+# Local IDE/tool settings
+.qoder/

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}API Key {{ '已重置' if rotated else '已创建' }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ 'API Key 已重置' if rotated else 'API Key 创建成功' }}</h1>
+    <p class="muted">出于安全考虑，完整 Key 只会显示这一次，请立即复制并妥善保存。</p>
+  </div>
+  <a class="btn" href="/keys">返回 Key 列表</a>
+</div>
+
+<div class="alert warn">
+  关闭本页面后将无法再次查看这个 Key。如果丢失，请在 Key 列表中重置密钥。
+</div>
+
+<div class="card secret-card">
+  <div class="secret-label">完整 API Key</div>
+  <div class="secret-row">
+    <code id="raw-key" class="secret-value">{{ raw_key }}</code>
+    <button type="button" class="btn primary" data-copy="#raw-key">复制</button>
+  </div>
+  <div class="muted small">
+    名称：{{ key.name }} · 允许数据库：
+    {% if key.databases %}
+      {% for db in key.databases %}<span class="tag">{{ db.name }}</span>{% endfor %}
+    {% else %}
+      无
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>接入第三方 Agent</h2>
+  <p class="muted">MCP 端点（Streamable HTTP）：</p>
+  <div class="secret-row">
+    <code>{{ request.base_url }}mcp</code>
+  </div>
+  <p class="muted">请求头：</p>
+  <div class="secret-row">
+    <code>Authorization: Bearer &lt;上面的 Key&gt;</code>
+  </div>
+
+  <p class="muted" style="margin-top: 18px;">支持 Streamable HTTP 的客户端配置示例：</p>
+  <pre class="code-block">{
+  "mcpServers": {
+    "database-ai-tool": {
+      "type": "streamable-http",
+      "url": "{{ request.base_url }}mcp",
+      "headers": {
+        "Authorization": "Bearer &lt;粘贴上面的 Key&gt;"
+      }
+    }
+  }
+}</pre>
+  <p class="muted small">
+    部分桌面客户端（如 Claude Desktop）只支持 stdio，可使用
+    <code>npx -y mcp-remote {{ request.base_url }}mcp --header "Authorization: Bearer &lt;Key&gt;"</code>
+    作为桥接，或在本地以 <code>MCP_API_KEY=&lt;Key&gt; python -m app.mcp.stdio</code> 方式运行。
+  </p>
+</div>
+{% endblock %}

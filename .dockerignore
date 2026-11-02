@@ -1,0 +1,17 @@
+.git
+.gitignore
+.venv
+venv
+data
+.pytest_cache
+.ruff_cache
+.qoder
+__pycache__
+*.py[cod]
+*.log
+.env
+.env.*
+!.env.example
+tests
+Dockerfile
+.dockerignore

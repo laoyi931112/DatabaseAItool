@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ '编辑数据库连接' if mode == 'edit' else '新增数据库连接' }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ '编辑数据库连接' if mode == 'edit' else '新增数据库连接' }}</h1>
+    <p class="muted">连接仅用于只读查询；建议同时使用只读数据库账号。</p>
+  </div>
+  <a class="btn" href="/databases">返回列表</a>
+</div>
+
+<div class="card form-card">
+  <form method="post" action="{{ action_url }}" id="db-form">
+    <div class="grid two">
+      <label>
+        <span>名称 <em>*</em></span>
+        <input type="text" name="name" value="{{ form.name }}" maxlength="100" required placeholder="例如：生产库-只读">
+        <small class="muted">Agent 通过这个名称选择数据库，需唯一。</small>
+      </label>
+
+      <label>
+        <span>数据库类型 <em>*</em></span>
+        <select name="db_type" id="db-type" required>
+          {% for key, info in db_type_info.items() %}
+            <option value="{{ key }}" data-default-port="{{ info.default_port or '' }}" data-remote="{{ '1' if info.needs_host else '0' }}" data-auth="{{ '1' if info.needs_auth else '0' }}" {{ 'selected' if form.db_type == key else '' }}>{{ info.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <div class="grid two" data-remote-field>
+      <label>
+        <span>主机</span>
+        <input type="text" name="host" value="{{ form.host }}" placeholder="127.0.0.1">
+      </label>
+      <label>
+        <span>端口</span>
+        <input type="number" name="port" id="db-port" value="{{ form.port }}" min="1" max="65535" placeholder="3306">
+      </label>
+    </div>
+
+    <label>
+      <span id="database-label">数据库名 / SQLite 文件路径 <em>*</em></span>
+      <input type="text" name="database" value="{{ form.database }}" required placeholder="例如：app_db 或 E:\data\app.db">
+      <small class="muted">SQLite 请填写本机数据库文件的绝对路径，文件必须以只读方式打开。</small>
+    </label>
+
+    <div class="grid two" data-auth-field>
+      <label>
+        <span>用户名</span>
+        <input type="text" name="username" value="{{ form.username }}" autocomplete="off">
+      </label>
+      <label>
+        <span>密码</span>
+        <input type="password" name="password" value="" autocomplete="new-password" placeholder="{{ '留空表示不修改' if mode == 'edit' else '' }}">
+        {% if mode == 'edit' %}
+          <small class="muted"><label class="inline"><input type="checkbox" name="clear_password" value="on" {{ 'checked' if form.clear_password else '' }}> 清除已保存的密码</label></small>
+        {% endif %}
+      </label>
+    </div>
+
+    <div class="grid two">
+      <label>
+        <span>最大返回行数</span>
+        <input type="number" name="max_rows" value="{{ form.max_rows }}" min="1" max="5000">
+        <small class="muted">单次查询最多返回给 Agent 的行数。</small>
+      </label>
+      <label>
+        <span>查询超时（秒）</span>
+        <input type="number" name="query_timeout" value="{{ form.query_timeout }}" min="1" max="600">
+      </label>
+    </div>
+
+    <label>
+      <span>高级选项（JSON，可选）</span>
+      <textarea name="options" rows="4" class="mono" placeholder='{"query": {"sslmode": "require"}}'>{{ form.options }}</textarea>
+      <small class="muted">
+        SQL 数据库支持 <code>query</code>（附加连接参数）、<code>connect_args</code>（驱动参数）、<code>charset</code>；
+        SQL Server 支持 <code>driver</code>；MongoDB 支持 <code>uri</code>、<code>authSource</code>、<code>tls</code> 等。
+      </small>
+    </label>
+
+    <label>
+      <span>备注</span>
+      <input type="text" name="description" value="{{ form.description }}" placeholder="用途说明（可选）">
+    </label>
+
+    <label class="inline checkbox">
+      <input type="checkbox" name="enabled" value="on" {{ 'checked' if form.enabled else '' }}>
+      <span>启用此连接（停用后所有 Key 都无法访问）</span>
+    </label>
+
+    <div class="form-actions">
+      <button type="submit" class="btn primary">{{ '保存修改' if mode == 'edit' else '创建连接' }}</button>
+      <a class="btn" href="/databases">取消</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

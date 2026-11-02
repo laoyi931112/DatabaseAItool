@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}出错了{% endblock %}
+{% block content %}
+<div class="card empty">
+  <h1>{{ message }}</h1>
+  <p class="muted">请返回上一页检查。</p>
+  <a class="btn primary" href="javascript:history.back()">返回</a>
+</div>
+{% endblock %}

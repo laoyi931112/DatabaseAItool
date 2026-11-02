@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}API Keys{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>API Keys</h1>
+    <p class="muted">每个 Key 只能访问被勾选的数据库。Key 仅在创建/重置时显示一次，请立即保存。</p>
+  </div>
+  <a class="btn primary" href="/keys/new">+ 新建 Key</a>
+</div>
+
+<div class="card endpoint-card">
+  <div>
+    <div class="muted small">MCP Streamable HTTP 端点</div>
+    <code>{{ request.base_url }}mcp</code>
+  </div>
+  <div>
+    <div class="muted small">请求头</div>
+    <code>Authorization: Bearer &lt;Key&gt;</code>
+  </div>
+</div>
+
+{% if keys %}
+<div class="card table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>名称</th>
+        <th>Key</th>
+        <th>状态</th>
+        <th>有效期</th>
+        <th>最近使用</th>
+        <th>可访问数据库</th>
+        <th class="actions-col">操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for key in keys %}
+      <tr>
+        <td><strong>{{ key.name }}</strong></td>
+        <td><code class="small">{{ key.key_prefix }}…</code></td>
+        <td>
+          {% if not key.enabled %}
+            <span class="badge off">已禁用</span>
+          {% elif key.is_expired %}
+            <span class="badge warn">已过期</span>
+          {% else %}
+            <span class="badge on">正常</span>
+          {% endif %}
+        </td>
+        <td class="small">{{ expiry_display(key.expires_at) }}</td>
+        <td class="small">{{ last_used_display(key.last_used_at) }}</td>
+        <td>
+          {% if key.databases %}
+            <div class="tag-list">
+              {% for db in key.databases %}
+                <span class="tag">{{ db.name }}</span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <span class="muted small">无（不能访问任何数据库）</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="actions">
+            <a class="btn small" href="/keys/{{ key.id }}/edit">编辑</a>
+            <form method="post" action="/keys/{{ key.id }}/toggle">
+              <button type="submit" class="btn small">{{ '禁用' if key.enabled else '启用' }}</button>
+            </form>
+            <form method="post" action="/keys/{{ key.id }}/rotate" data-confirm="重置后旧 Key 立即失效，确定继续吗？">
+              <button type="submit" class="btn small">重置密钥</button>
+            </form>
+            <form method="post" action="/keys/{{ key.id }}/delete" data-confirm="确定删除 API Key「{{ key.name }}」吗？">
+              <button type="submit" class="btn small danger">删除</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card empty">
+  <h2>还没有 API Key</h2>
+  <p class="muted">创建 Key 后，把它和 MCP 端点一起配置到第三方 Agent。</p>
+  <a class="btn primary" href="/keys/new">创建第一个 Key</a>
+</div>
+{% endif %}
+{% endblock %}
