@@ -36,7 +36,31 @@ def get_session() -> Iterator[Session]:
         session.close()
 
 
+_DATABASE_CONNECTION_COLUMNS = {
+    "tunnel_url": "VARCHAR(1000)",
+    "tunnel_username": "VARCHAR(255)",
+    "tunnel_password_encrypted": "TEXT",
+    "tunnel_encode_base64": "BOOLEAN NOT NULL DEFAULT 1",
+}
+
+
+def _migrate_database_connections() -> None:
+    with engine.begin() as connection:
+        existing = {
+            row[1]
+            for row in connection.exec_driver_sql(
+                "PRAGMA table_info(database_connections)"
+            )
+        }
+        for name, ddl in _DATABASE_CONNECTION_COLUMNS.items():
+            if name not in existing:
+                connection.exec_driver_sql(
+                    f"ALTER TABLE database_connections ADD COLUMN {name} {ddl}"
+                )
+
+
 def init_db() -> None:
     from app import models  # noqa: F401  (register mappings)
 
     Base.metadata.create_all(engine)
+    _migrate_database_connections()

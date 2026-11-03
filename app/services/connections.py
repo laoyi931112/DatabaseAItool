@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from typing import Any
+from urllib.parse import urlparse
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -20,6 +21,7 @@ from app.security import (
 from app.utils import utcnow
 
 MAX_TIMEOUT = 600
+TUNNEL_DB_TYPES = ("mysql", "postgresql")
 
 
 class ServiceError(ValueError):
@@ -41,6 +43,32 @@ def _parse_port(port: int | str | None) -> int | None:
     if not 1 <= value <= 65535:
         raise ServiceError("端口必须在 1-65535 之间")
     return value
+
+
+def _normalize_tunnel(
+    *,
+    db_type: str,
+    tunnel_url: str | None,
+    tunnel_username: str | None,
+    tunnel_password: str | None,
+    tunnel_encode_base64: bool,
+) -> tuple[str | None, str | None, str | None, bool]:
+    url = _clean_optional(tunnel_url)
+    if not url:
+        return None, None, None, True
+    if db_type not in TUNNEL_DB_TYPES:
+        raise ServiceError("Navicat HTTP 隧道暂只支持 MySQL/MariaDB 与 PostgreSQL")
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ServiceError("HTTP 隧道地址必须是 http:// 或 https:// 开头的完整 URL")
+    if parsed.username or parsed.password:
+        raise ServiceError("请勿在隧道地址中包含账号密码，请使用独立的认证字段")
+    return (
+        url,
+        _clean_optional(tunnel_username),
+        tunnel_password or None,
+        bool(tunnel_encode_base64),
+    )
 
 
 def _normalize_options(options_text: str | None) -> str:
@@ -94,6 +122,10 @@ def create_database(
     port: int | str | None = None,
     username: str | None = None,
     password: str | None = None,
+    tunnel_url: str | None = None,
+    tunnel_username: str | None = None,
+    tunnel_password: str | None = None,
+    tunnel_encode_base64: bool = True,
     options_text: str | None = None,
     description: str | None = None,
     enabled: bool = True,
@@ -107,6 +139,18 @@ def create_database(
         max_rows=max_rows,
         query_timeout=query_timeout,
     )
+    tunnel_url, tunnel_username, tunnel_password, tunnel_encode_base64 = (
+        _normalize_tunnel(
+            db_type=db_type,
+            tunnel_url=tunnel_url,
+            tunnel_username=tunnel_username,
+            tunnel_password=tunnel_password,
+            tunnel_encode_base64=tunnel_encode_base64,
+        )
+    )
+    parsed_port = _parse_port(port)
+    if tunnel_url and parsed_port is None:
+        parsed_port = DB_TYPE_INFO[db_type]["default_port"]
     if session.scalar(select(DatabaseConnection).where(DatabaseConnection.name == name)):
         raise ServiceError(f"名称已存在：{name}")
 
@@ -114,10 +158,16 @@ def create_database(
         name=name,
         db_type=db_type,
         host=_clean_optional(host),
-        port=_parse_port(port),
+        port=parsed_port,
         database=database,
         username=_clean_optional(username),
         password_encrypted=encrypt_secret(password) if password else None,
+        tunnel_url=tunnel_url,
+        tunnel_username=tunnel_username,
+        tunnel_password_encrypted=(
+            encrypt_secret(tunnel_password) if tunnel_password else None
+        ),
+        tunnel_encode_base64=tunnel_encode_base64,
         options_json=_normalize_options(options_text),
         description=_clean_optional(description),
         enabled=enabled,
@@ -145,6 +195,11 @@ def update_database(
     username: str | None = None,
     password: str | None = None,
     clear_password: bool = False,
+    tunnel_url: str | None = None,
+    tunnel_username: str | None = None,
+    tunnel_password: str | None = None,
+    clear_tunnel_password: bool = False,
+    tunnel_encode_base64: bool = True,
     options_text: str | None = None,
     description: str | None = None,
     enabled: bool = True,
@@ -158,6 +213,18 @@ def update_database(
         max_rows=max_rows,
         query_timeout=query_timeout,
     )
+    tunnel_url, tunnel_username, tunnel_password, tunnel_encode_base64 = (
+        _normalize_tunnel(
+            db_type=db_type,
+            tunnel_url=tunnel_url,
+            tunnel_username=tunnel_username,
+            tunnel_password=tunnel_password,
+            tunnel_encode_base64=tunnel_encode_base64,
+        )
+    )
+    parsed_port = _parse_port(port)
+    if tunnel_url and parsed_port is None:
+        parsed_port = DB_TYPE_INFO[db_type]["default_port"]
     duplicate = session.scalar(
         select(DatabaseConnection).where(
             DatabaseConnection.name == name, DatabaseConnection.id != record.id
@@ -169,13 +236,22 @@ def update_database(
     record.name = name
     record.db_type = db_type
     record.host = _clean_optional(host)
-    record.port = _parse_port(port)
+    record.port = parsed_port
     record.database = database
     record.username = _clean_optional(username)
     if clear_password:
         record.password_encrypted = None
     elif password:
         record.password_encrypted = encrypt_secret(password)
+    record.tunnel_url = tunnel_url
+    record.tunnel_username = tunnel_username
+    record.tunnel_encode_base64 = tunnel_encode_base64
+    if tunnel_url is None:
+        record.tunnel_password_encrypted = None
+    elif clear_tunnel_password:
+        record.tunnel_password_encrypted = None
+    elif tunnel_password:
+        record.tunnel_password_encrypted = encrypt_secret(tunnel_password)
     record.options_json = _normalize_options(options_text)
     record.description = _clean_optional(description)
     record.enabled = enabled

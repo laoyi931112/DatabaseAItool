@@ -11,9 +11,13 @@
     var remote = option.dataset.remote === "1";
     var auth = option.dataset.auth === "1";
     var isSqlite = typeSelect.value === "sqlite";
+    var tunnelSupported = typeSelect.value === "mysql" || typeSelect.value === "postgresql";
 
     document.querySelectorAll("[data-remote-field]").forEach(function (el) {
       el.hidden = !remote;
+    });
+    document.querySelectorAll("[data-tunnel-field]").forEach(function (el) {
+      el.hidden = !tunnelSupported;
     });
     document.querySelectorAll("[data-auth-field]").forEach(function (el) {
       el.hidden = !auth;

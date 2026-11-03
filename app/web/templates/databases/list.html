@@ -32,7 +32,15 @@
         </td>
         <td><span class="badge type">{{ db_type_info[db.db_type].label if db.db_type in db_type_info else db.db_type }}</span></td>
         <td class="mono small">
-          {% if db.db_type == 'sqlite' %}本地文件{% else %}{{ db.host or '127.0.0.1' }}{% if db.port %}:{{ db.port }}{% endif %}{% endif %}
+          {% if db.tunnel_url %}
+            <span class="badge warn">HTTP 隧道</span>
+            <div class="small">{{ db.host or 'localhost' }}{% if db.port %}:{{ db.port }}{% endif %}</div>
+            <div class="muted small tunnel-url" title="{{ db.tunnel_url }}">{{ db.tunnel_url }}</div>
+          {% elif db.db_type == 'sqlite' %}
+            本地文件
+          {% else %}
+            {{ db.host or '127.0.0.1' }}{% if db.port %}:{{ db.port }}{% endif %}
+          {% endif %}
         </td>
         <td class="mono small">{{ db.database }}</td>
         <td>

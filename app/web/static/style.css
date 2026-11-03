@@ -233,6 +233,8 @@ textarea.mono { font-size: 13px; }
   font-family: "Cascadia Code", Consolas, monospace;
 }
 
+.tunnel-url { max-width: 280px; word-break: break-all; }
+
 .test-result { margin-top: 6px; font-size: 12.5px; min-height: 18px; }
 .test-result.ok { color: var(--ok); }
 .test-result.error { color: var(--danger); }

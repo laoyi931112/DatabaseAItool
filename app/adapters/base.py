@@ -81,6 +81,10 @@ class DBConfig:
     options: dict[str, Any]
     max_rows: int
     query_timeout: int
+    tunnel_url: str | None = None
+    tunnel_username: str | None = None
+    tunnel_password: str | None = None
+    tunnel_encode_base64: bool = True
 
     @classmethod
     def from_model(cls, model: DatabaseConnection) -> "DBConfig":
@@ -103,6 +107,10 @@ class DBConfig:
             options=options,
             max_rows=model.max_rows or settings.default_max_rows,
             query_timeout=model.query_timeout or settings.default_query_timeout,
+            tunnel_url=model.tunnel_url,
+            tunnel_username=model.tunnel_username,
+            tunnel_password=decrypt_secret(model.tunnel_password_encrypted),
+            tunnel_encode_base64=bool(model.tunnel_encode_base64),
         )
 
 

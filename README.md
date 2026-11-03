@@ -3,6 +3,7 @@
 给第三方 AI Agent 使用的**只读**数据库 MCP 工具，附带本地管理界面。
 
 - 多数据库：MySQL / MariaDB、PostgreSQL、SQLite、SQL Server、Oracle、MongoDB
+- HTTP 隧道：MySQL / MariaDB、PostgreSQL 可复用 Navicat 官方 `ntunnel_*.php` 脚本连接内网数据库
 - 管理界面：维护数据库连接、测试连接、创建/编辑/禁用/重置 API Key
 - 按 Key 授权：每个 Key 只能访问被勾选的数据库
 - 本地存储：连接信息保存在本机 SQLite，数据库密码使用 Fernet 加密，Key 只保存 HMAC 哈希
@@ -276,6 +277,26 @@ SQL Server 需要安装对应的 ODBC 驱动（默认 `ODBC Driver 18 for SQL Se
 ```
 
 其中 `query` 会作为 SQLAlchemy URL 查询参数，`connect_args` 会作为 DBAPI 连接参数。
+
+## 通过 Navicat HTTP 隧道连接
+
+当数据库只能从内网访问，但有一台能访问数据库的 PHP 主机时，可以复用 Navicat 的 HTTP 隧道：把官方脚本 `ntunnel_mysql.php`（MySQL / MariaDB）或 `ntunnel_pgsql.php`（PostgreSQL）上传到该 PHP 站点，本工具直接以 Navicat 隧道协议访问脚本，不需要安装 Navicat 客户端。
+
+添加连接时选择 MySQL / PostgreSQL，然后在「HTTP 隧道」区域填写：
+
+| 字段 | 说明 |
+| --- | --- |
+| 隧道地址 | 脚本的完整 URL，例如 `https://example.com/ntunnel_mysql.php` |
+| 隧道用户名 / 密码 | 可选，HTTP Basic 认证（脚本本身或前置反向代理启用时填写），密码加密保存 |
+| Base64 编码查询 | 默认开启，与 Navicat 客户端默认行为一致；脚本端 `$encodeBase64` 关闭时需取消勾选 |
+
+主机、端口、库名、账号密码仍然填数据库本身的信息——它们由隧道脚本使用，因此应填写**脚本所在主机能访问到的**数据库地址。勾选隧道后端口留空会按类型补默认值（MySQL 3306 / PostgreSQL 5432）。
+
+注意：
+
+- 隧道只支持 MySQL / MariaDB 与 PostgreSQL；SQLite、SQL Server、Oracle、MongoDB 仍需直连。
+- 隧道同样受只读保护：SQL 白名单校验 + 脚本会话设置只读。由于隧道在单个 HTTP 响应中返回全部结果，查询会自动改写为 `SELECT * FROM (<原语句>) AS _aitool LIMIT n+1` 在服务端截断行数。
+- 隧道传输的是数据库凭据和查询结果（Base64 可解码），请务必使用 HTTPS 并限制脚本访问权限。
 
 ## 配置项（`.env`）
 

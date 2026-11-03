@@ -59,6 +59,39 @@
       </label>
     </div>
 
+    <fieldset class="fieldset" data-tunnel-field {% if form.db_type not in ('mysql', 'postgresql') %}hidden{% endif %}>
+      <legend>Navicat HTTP 隧道（可选）</legend>
+      <label>
+        <span>隧道脚本地址</span>
+        <input type="text" name="tunnel_url" value="{{ form.tunnel_url }}" placeholder="https://example.com/ntunnel_mysql.php">
+        <small class="muted">
+          填写后，上面的主机 / 端口 / 账号密码将由隧道脚本从 Web 服务器侧连接数据库，本服务不再直接访问数据库。
+          支持 Navicat 官方的 <code>ntunnel_mysql.php</code>、<code>ntunnel_pgsql.php</code>；建议使用 HTTPS。
+        </small>
+      </label>
+      <div class="grid two">
+        <label>
+          <span>隧道 HTTP 认证用户名</span>
+          <input type="text" name="tunnel_username" value="{{ form.tunnel_username }}" autocomplete="off">
+          <small class="muted">隧道脚本启用了 HTTP Basic 认证时填写。</small>
+        </label>
+        <label>
+          <span>隧道 HTTP 认证密码</span>
+          <input type="password" name="tunnel_password" value="" autocomplete="new-password" placeholder="{{ '留空表示不修改' if mode == 'edit' else '' }}">
+          {% if mode == 'edit' and record and record.tunnel_password_encrypted %}
+            <small class="muted"><label class="inline"><input type="checkbox" name="clear_tunnel_password" value="on" {{ 'checked' if form.clear_tunnel_password else '' }}> 清除已保存的隧道认证密码</label></small>
+          {% endif %}
+        </label>
+      </div>
+      <label class="inline checkbox">
+        <input type="checkbox" name="tunnel_encode_base64" value="on" {{ 'checked' if form.tunnel_encode_base64 else '' }}>
+        <span>用 base64 编码传出查询（建议勾选，可绕过部分 WAF）</span>
+      </label>
+      <p class="muted small">
+        隧道模式下仍会执行只读 SQL 校验，并在数据库会话中开启只读；建议数据库账号本身也只授予 SELECT 权限。
+      </p>
+    </fieldset>
+
     <div class="grid two">
       <label>
         <span>最大返回行数</span>
