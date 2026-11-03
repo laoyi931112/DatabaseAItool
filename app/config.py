@@ -26,6 +26,8 @@ class Settings(BaseSettings):
 
     # MCP 传输层 DNS 重绑定保护的允许 Host，逗号分隔；留空时仅允许本机。
     mcp_allowed_hosts: str = ""
+    # 关闭 MCP 的 Host/Origin 校验；仅在可信反向代理后使用。
+    mcp_disable_host_check: bool = False
 
     default_max_rows: int = 500
     hard_max_rows: int = 5000

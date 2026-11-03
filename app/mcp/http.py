@@ -25,14 +25,20 @@ def _allowed_hosts() -> list[str]:
     return list(dict.fromkeys(hosts))
 
 
+def _transport_security() -> TransportSecuritySettings:
+    if settings.mcp_disable_host_check:
+        return TransportSecuritySettings(enable_dns_rebinding_protection=False)
+    return TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=_allowed_hosts(),
+    )
+
+
 def build_mcp_http_app():
     return mcp.streamable_http_app(
         streamable_http_path="/mcp",
         host=settings.host,
-        transport_security=TransportSecuritySettings(
-            enable_dns_rebinding_protection=True,
-            allowed_hosts=_allowed_hosts(),
-        ),
+        transport_security=_transport_security(),
     )
 
 

@@ -175,6 +175,8 @@ python -m app
 - 鉴权：`Authorization: Bearer dbt_...`，或 `X-API-Key: dbt_...`
 - 传输：Streamable HTTP
 
+> 通过域名/反向代理访问时，域名必须加入 `MCP_ALLOWED_HOSTS`，否则返回 `421 Invalid Host header`。如果反向代理已负责访问控制，也可以设置 `MCP_DISABLE_HOST_CHECK=true` 彻底关闭该校验（API Key 鉴权仍然生效）。
+
 支持 Streamable HTTP 的客户端配置示例：
 
 ```json
@@ -285,6 +287,7 @@ SQL Server 需要安装对应的 ODBC 驱动（默认 `ODBC Driver 18 for SQL Se
 | `ADMIN_PASSWORD` | 空 | 设置后管理界面需要登录；为空则本机免登录 |
 | `DATA_DIR` | `./data` | 内部 SQLite 与密钥文件目录；Docker 镜像内为 `/data` |
 | `MCP_ALLOWED_HOSTS` | 空 | 额外允许的 Host（逗号分隔），用于非 localhost 访问 |
+| `MCP_DISABLE_HOST_CHECK` | `false` | 关闭 MCP 的 Host/Origin 校验，仅建议在可信反向代理后使用 |
 | `DEFAULT_MAX_ROWS` | `500` | 新建连接的默认返回行数上限 |
 | `HARD_MAX_ROWS` | `5000` | 允许配置的绝对上限 |
 | `DEFAULT_QUERY_TIMEOUT` | `30` | 新建连接的默认超时（秒） |

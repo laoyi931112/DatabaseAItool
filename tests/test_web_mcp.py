@@ -118,6 +118,14 @@ def _call_tool(
     return message["result"]
 
 
+def test_disable_host_check(monkeypatch) -> None:
+    from app.mcp import http as mcp_http
+
+    monkeypatch.setattr(mcp_http.settings, "mcp_disable_host_check", True)
+    security = mcp_http._transport_security()
+    assert security.enable_dns_rebinding_protection is False
+
+
 def test_database_and_key_ui_flow(client: TestClient, sqlite_file: Path) -> None:
     response = client.get("/databases")
     assert response.status_code == 200
