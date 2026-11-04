@@ -76,3 +76,27 @@ class ApiKey(Base):
     @property
     def is_expired(self) -> bool:
         return self.expires_at is not None and self.expires_at <= utcnow()
+
+
+class OperationLog(Base):
+    __tablename__ = "operation_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    # Key/连接被删除后置空，name 快照仍让日志可读。
+    api_key_id: Mapped[int | None] = mapped_column(
+        ForeignKey("api_keys.id", ondelete="SET NULL"), default=None, index=True
+    )
+    api_key_name: Mapped[str | None] = mapped_column(String(100), default=None)
+    connection_id: Mapped[int | None] = mapped_column(
+        ForeignKey("database_connections.id", ondelete="SET NULL"),
+        default=None,
+        index=True,
+    )
+    database_name: Mapped[str | None] = mapped_column(String(100), default=None)
+    operation: Mapped[str] = mapped_column(String(50), index=True)
+    detail: Mapped[str | None] = mapped_column(Text, default=None)
+    status: Mapped[str] = mapped_column(String(10), index=True)
+    error_message: Mapped[str | None] = mapped_column(Text, default=None)
+    duration_ms: Mapped[int | None] = mapped_column(Integer, default=None)
+    row_count: Mapped[int | None] = mapped_column(Integer, default=None)

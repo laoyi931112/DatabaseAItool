@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -14,6 +14,7 @@ from app.config import BASE_DIR, settings
 from app.db import get_session
 from app.models import ApiKey, DatabaseConnection
 from app.services import connections as cs
+from app.services import operation_logs as als
 from app.utils import utcnow
 
 router = APIRouter()
@@ -77,9 +78,16 @@ def last_used_display(value: datetime | None) -> str:
     return value.replace(tzinfo=timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M")
 
 
+def datetime_display(value: datetime | None, fmt: str = "%Y-%m-%d %H:%M:%S") -> str:
+    if value is None:
+        return ""
+    return value.replace(tzinfo=timezone.utc).astimezone().strftime(fmt)
+
+
 templates.env.globals.update(
     expiry_display=expiry_display,
     last_used_display=last_used_display,
+    datetime_display=datetime_display,
 )
 
 
@@ -552,6 +560,60 @@ def key_delete(
     cs.delete_api_key(session, record)
     flash(request, f"API Key「{name}」已删除")
     return RedirectResponse("/keys", status_code=303)
+
+
+# -------------------------------------------------------------------- logs
+
+
+def _positive_int(value: str | None, default: int = 1) -> int:
+    try:
+        return max(1, int(value))
+    except (TypeError, ValueError):
+        return default
+
+
+@router.get("/logs")
+def logs_list(
+    request: Request,
+    key_id: str | None = Query(None),
+    database: str | None = Query(None),
+    status: str | None = Query(None),
+    page: str = Query("1"),
+    session: Session = Depends(get_session),
+):
+    parsed_key_id = _positive_int(key_id, 0) or None
+    current_page = _positive_int(page)
+    records, total = als.list_logs(
+        session,
+        key_id=parsed_key_id,
+        database=database,
+        status=status,
+        page=current_page,
+    )
+    return render(
+        request,
+        "logs/list.html",
+        active="logs",
+        logs=records,
+        total=total,
+        page=current_page,
+        pages=max(1, -(-total // als.PAGE_SIZE)),
+        keys=cs.list_api_keys(session),
+        database_names=als.database_names(session),
+        filters={
+            "key_id": key_id or "",
+            "database": database or "",
+            "status": status or "",
+        },
+        retention_days=settings.operation_log_retention_days,
+    )
+
+
+@router.post("/logs/clear")
+def logs_clear(request: Request, session: Session = Depends(get_session)):
+    count = als.clear_logs(session)
+    flash(request, f"已清空 {count} 条操作日志")
+    return RedirectResponse("/logs", status_code=303)
 
 
 # ------------------------------------------------------------------- forms

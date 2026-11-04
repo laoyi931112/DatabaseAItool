@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # 同一 API Key 的 last_used_at 最小刷新间隔，避免每个工具调用都写库。
     last_used_update_interval_seconds: int = 60
 
+    # MCP 操作日志保留天数与参数摘要截断长度。
+    operation_log_retention_days: int = 30
+    operation_log_max_detail_chars: int = 2000
+
     @property
     def database_path(self) -> Path:
         return self.data_dir / "app.db"

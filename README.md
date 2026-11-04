@@ -169,6 +169,7 @@ python -m app
 5. **创建 API Key**：进入「API Keys」→「新建 Key」，勾选该 Key 允许访问的数据库，可设置过期时间。创建后立即复制完整 Key（`dbt_...`，只显示这一次）。
 6. **接入第三方 Agent**：把 MCP 端点 `http://127.0.0.1:8000/mcp` 和 Key 填入 Agent 配置，参考下一节。
 7. **日常维护**：可随时禁用/启用 Key、重置 Key（旧 Key 立即失效）、修改数据库授权；不用的连接和 Key 可直接删除。Key 列表会显示最近使用时间。
+8. **查看操作日志**：进入「操作日志」查看每次 AI Agent 访问数据库的记录，详见下文。
 
 ## MCP 接入
 
@@ -298,6 +299,18 @@ SQL Server 需要安装对应的 ODBC 驱动（默认 `ODBC Driver 18 for SQL Se
 - 隧道同样受只读保护：SQL 白名单校验 + 脚本会话设置只读。由于隧道在单个 HTTP 响应中返回全部结果，查询会自动改写为 `SELECT * FROM (<原语句>) AS _aitool LIMIT n+1` 在服务端截断行数。
 - 隧道传输的是数据库凭据和查询结果（Base64 可解码），请务必使用 HTTPS 并限制脚本访问权限。
 
+## 操作日志
+
+每一次通过 MCP 工具访问数据库都会记录一条日志，写入内部 SQLite 的 `operation_logs` 表，在管理界面「操作日志」页可按 Key、数据库、结果筛选翻页。
+
+记录内容包括：时间、API Key、目标数据库连接、操作名（`query` / `list_tables` / `find_documents` 等）、入参摘要（SQL 语句、表名、Mongo filter/pipeline，超过 `OPERATION_LOG_MAX_DETAIL_CHARS` 会截断）、耗时（毫秒）、返回行数，以及成功/失败与失败原因。
+
+- 被只读规则拦截的请求（如 `UPDATE`、多语句 SQL、`$out`）与越权访问同样会记录为失败，方便发现异常尝试。
+- 只记录入参，不记录查询结果里的数据行。
+- Key 或数据库连接被删除后，日志中的名称快照仍保留，便于事后追溯。
+- 日志默认保留 30 天，启动服务和写入日志时按 `OPERATION_LOG_RETENTION_DAYS` 自动清理，也可以在页面点「清空日志」立即全部删除。
+- 管理端配置变更（新增/修改连接、Key 操作）不记录在这个页面。
+
 ## 配置项（`.env`）
 
 | 变量 | 默认值 | 说明 |
@@ -313,6 +326,8 @@ SQL Server 需要安装对应的 ODBC 驱动（默认 `ODBC Driver 18 for SQL Se
 | `HARD_MAX_ROWS` | `5000` | 允许配置的绝对上限 |
 | `DEFAULT_QUERY_TIMEOUT` | `30` | 新建连接的默认超时（秒） |
 | `CONNECT_TIMEOUT` | `5` | 建立数据库连接超时（秒） |
+| `OPERATION_LOG_RETENTION_DAYS` | `30` | MCP 操作日志保留天数 |
+| `OPERATION_LOG_MAX_DETAIL_CHARS` | `2000` | 日志中入参摘要的截断长度 |
 
 ## 目录结构
 
@@ -338,7 +353,7 @@ docker-compose.yml   # 可选，自行按 README 示例创建
 pytest
 ```
 
-测试覆盖 SQL 只读校验、加密与 Key 哈希、SQLite 只读连接与查询、MongoDB 写阶段拦截、Key 权限、管理界面流程、MCP 鉴权与完整协议调用。
+测试覆盖 SQL 只读校验、加密与 Key 哈希、SQLite 只读连接与查询、MongoDB 写阶段拦截、Key 权限、管理界面流程、MCP 鉴权与完整协议调用、操作日志的记录与清理。
 
 ## 已知边界
 

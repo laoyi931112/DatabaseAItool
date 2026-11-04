@@ -6,6 +6,7 @@ from app.adapters import DBConfig, get_adapter
 from app.adapters.base import AdapterError
 from app.adapters.mongo import MongoAdapter
 from app.db import SessionLocal
+from app.mcp.audit import audit_log
 from app.models import ApiKey
 from app.services import connections as connection_service
 
@@ -25,6 +26,7 @@ def _config_for(key_id: int, database_name: str) -> DBConfig:
         return DBConfig.from_model(record)
 
 
+@audit_log
 def list_databases(key_id: int) -> dict[str, Any]:
     with SessionLocal() as session:
         _ensure_key(session, key_id)
@@ -42,15 +44,18 @@ def list_databases(key_id: int) -> dict[str, Any]:
         }
 
 
+@audit_log
 def get_database_info(key_id: int, database: str) -> dict[str, Any]:
     return get_adapter(_config_for(key_id, database)).get_database_info()
 
 
+@audit_log
 def list_schemas(key_id: int, database: str) -> dict[str, Any]:
     adapter = get_adapter(_config_for(key_id, database))
     return {"database": database, "schemas": adapter.list_schemas()}
 
 
+@audit_log
 def list_tables(
     key_id: int, database: str, schema: str | None = None
 ) -> dict[str, Any]:
@@ -58,6 +63,7 @@ def list_tables(
     return {"database": database, "schema": schema, "tables": adapter.list_tables(schema)}
 
 
+@audit_log
 def describe_table(
     key_id: int, database: str, table: str, schema: str | None = None
 ) -> dict[str, Any]:
@@ -65,6 +71,7 @@ def describe_table(
     return adapter.describe_table(table, schema)
 
 
+@audit_log
 def query(
     key_id: int, database: str, sql: str, max_rows: int | None = None
 ) -> dict[str, Any]:
@@ -72,6 +79,7 @@ def query(
     return adapter.query(sql, max_rows)
 
 
+@audit_log
 def sample_rows(
     key_id: int,
     database: str,
@@ -83,6 +91,7 @@ def sample_rows(
     return adapter.sample_rows(table, schema, limit)
 
 
+@audit_log
 def find_documents(
     key_id: int,
     database: str,
@@ -98,6 +107,7 @@ def find_documents(
     return adapter.find_documents(collection, filter, projection, sort, limit)
 
 
+@audit_log
 def aggregate_documents(
     key_id: int,
     database: str,

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}操作日志{% endblock %}
+{% block content %}
+{% set query_base = "key_id=" ~ (filters.key_id | urlencode) ~ "&database=" ~ (filters.database | urlencode) ~ "&status=" ~ (filters.status | urlencode) %}
+
+<div class="page-head">
+  <div>
+    <h1>操作日志</h1>
+    <p class="muted">记录每一次通过 MCP 工具访问数据库的调用，包括被只读规则拦截的请求。日志保留 {{ retention_days }} 天。</p>
+  </div>
+  <form method="post" action="/logs/clear" data-confirm="确定清空全部操作日志吗？此操作不可恢复。">
+    <button type="submit" class="btn danger">清空日志</button>
+  </form>
+</div>
+
+<form method="get" action="/logs" class="card filter-bar">
+  <label>
+    <span>API Key</span>
+    <select name="key_id">
+      <option value="">全部</option>
+      {% for key in keys %}
+      <option value="{{ key.id }}" {{ 'selected' if filters.key_id == key.id|string }}>{{ key.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    <span>数据库</span>
+    <select name="database">
+      <option value="">全部</option>
+      {% for name in database_names %}
+      <option value="{{ name }}" {{ 'selected' if filters.database == name }}>{{ name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    <span>结果</span>
+    <select name="status">
+      <option value="">全部</option>
+      <option value="success" {{ 'selected' if filters.status == 'success' }}>成功</option>
+      <option value="error" {{ 'selected' if filters.status == 'error' }}>失败</option>
+    </select>
+  </label>
+  <div class="filter-actions">
+    <button type="submit" class="btn primary">筛选</button>
+    <a class="btn" href="/logs">重置</a>
+  </div>
+</form>
+
+{% if logs %}
+<div class="card table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>时间</th>
+        <th>API Key</th>
+        <th>数据库</th>
+        <th>操作</th>
+        <th>结果</th>
+        <th>行数</th>
+        <th>耗时</th>
+        <th>参数 / 错误</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td class="mono small nowrap">{{ datetime_display(log.created_at) }}</td>
+        <td>{{ log.api_key_name or '已删除的 Key' }}</td>
+        <td class="mono small">{{ log.database_name or '—' }}</td>
+        <td><span class="badge type">{{ log.operation }}</span></td>
+        <td>
+          {% if log.status == 'success' %}
+            <span class="badge on">成功</span>
+          {% else %}
+            <span class="badge warn">失败</span>
+          {% endif %}
+        </td>
+        <td class="mono small">{{ log.row_count if log.row_count is not none else '—' }}</td>
+        <td class="mono small">{{ log.duration_ms }} ms</td>
+        <td>
+          <div class="log-detail mono small" title="{{ log.detail }}">{{ log.detail or '—' }}</div>
+          {% if log.error_message %}
+          <div class="log-error small">{{ log.error_message }}</div>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="pager">
+  <span class="muted small">共 {{ total }} 条 · 第 {{ page }} / {{ pages }} 页</span>
+  <div class="actions">
+    {% if page > 1 %}
+    <a class="btn small" href="/logs?{{ query_base }}&page={{ page - 1 }}">上一页</a>
+    {% endif %}
+    {% if page < pages %}
+    <a class="btn small" href="/logs?{{ query_base }}&page={{ page + 1 }}">下一页</a>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="card empty">
+  <h2>没有符合条件的日志</h2>
+  <p class="muted">当 AI Agent 通过 MCP 端点 <code>/mcp</code> 访问数据库时，这里会自动记录。</p>
+</div>
+{% endif %}
+{% endblock %}

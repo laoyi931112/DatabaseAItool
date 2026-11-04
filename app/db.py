@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 
 from sqlalchemy import create_engine, event
@@ -64,3 +65,13 @@ def init_db() -> None:
 
     Base.metadata.create_all(engine)
     _migrate_database_connections()
+    _prune_operation_logs()
+
+
+def _prune_operation_logs() -> None:
+    from app.services.operation_logs import prune_expired
+
+    try:
+        prune_expired()
+    except Exception:  # 保留期清理不该阻断启动
+        logging.getLogger(__name__).exception("清理过期操作日志失败")

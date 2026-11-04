@@ -15,7 +15,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy import delete
 
 from app.db import SessionLocal, init_db
-from app.models import ApiKey, DatabaseConnection, key_database_permissions
+from app.models import (
+    ApiKey,
+    DatabaseConnection,
+    OperationLog,
+    key_database_permissions,
+)
 
 
 @pytest.fixture(scope="session")
@@ -32,6 +37,7 @@ def client():
 def clean_database():
     init_db()
     with SessionLocal() as session:
+        session.execute(delete(OperationLog))
         session.execute(delete(key_database_permissions))
         session.execute(delete(ApiKey))
         session.execute(delete(DatabaseConnection))

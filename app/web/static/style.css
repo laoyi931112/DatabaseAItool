@@ -239,6 +239,34 @@ textarea.mono { font-size: 13px; }
 .test-result.ok { color: var(--ok); }
 .test-result.error { color: var(--danger); }
 
+.filter-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px 16px;
+  align-items: end;
+  margin-bottom: 16px;
+}
+.filter-bar label { margin-bottom: 0; }
+.filter-actions { display: flex; gap: 8px; }
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.nowrap { white-space: nowrap; }
+.log-detail {
+  max-width: 460px;
+  color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.log-error { max-width: 460px; margin-top: 6px; color: var(--danger); word-break: break-word; }
+
 .footer {
   padding: 18px 28px;
   text-align: center;
